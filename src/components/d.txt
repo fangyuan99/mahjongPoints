@@ -1,0 +1,142 @@
+[
+  {
+    "date": 1671777531618,
+    "mahjongData": [
+      {
+        "id": 0,
+        "name": " IKUN",
+        "winningProbability": "0.35",
+        "numberOfVictories": 7,
+        "numberOfDefeats": 13,
+        "moneyOfVictories": 45,
+        "moneyOfDefeats": -30,
+        "moneyOfTotal": 15,
+        "mahjongRecord": [
+          4, 4, -2, 4, -1, -3, -4, 6, -2, 9, 8, 10, -4, -2, -3, -2, -1, -2, -2,
+          -2
+        ],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      },
+      {
+        "id": 1,
+        "name": "明黑",
+        "winningProbability": "0.35",
+        "numberOfVictories": 7,
+        "numberOfDefeats": 13,
+        "moneyOfVictories": 36,
+        "moneyOfDefeats": -38,
+        "moneyOfTotal": -2,
+        "mahjongRecord": [
+          -2, -2, 4, -2, -1, -3, 8, -3, -2, -5, -6, -5, 8, -2, 8, -3, 0, 4, 4,
+          -2
+        ],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      },
+      {
+        "id": 2,
+        "name": "龙黑",
+        "winningProbability": "0.35",
+        "numberOfVictories": 7,
+        "numberOfDefeats": 13,
+        "moneyOfVictories": 26,
+        "moneyOfDefeats": -39,
+        "moneyOfTotal": -13,
+        "mahjongRecord": [
+          -2, -2, -2, -2, 2, 6, -4, -3, 4, -4, -2, -5, -4, 4, -5, 5, 1, -2, -2,
+          4
+        ],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      }
+    ]
+  },
+  {
+    "date": 1671725021014,
+    "mahjongData": [
+      {
+        "id": 0,
+        "name": " IKUN",
+        "winningProbability": "0.36",
+        "numberOfVictories": 5,
+        "numberOfDefeats": 9,
+        "moneyOfVictories": 23,
+        "moneyOfDefeats": -24,
+        "moneyOfTotal": -1,
+        "mahjongRecord": [-3, -2, -4, 4, -3, 9, 4, 4, -2, -2, -2, -2, -4, 2],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      },
+      {
+        "id": 1,
+        "name": "明黑",
+        "winningProbability": "0.14",
+        "numberOfVictories": 2,
+        "numberOfDefeats": 12,
+        "moneyOfVictories": 8,
+        "moneyOfDefeats": -30,
+        "moneyOfTotal": -22,
+        "mahjongRecord": [-3, 4, -3, -2, -4, -3, -2, -2, -2, 4, -2, -2, -4, -1],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      },
+      {
+        "id": 2,
+        "name": "龙黑",
+        "winningProbability": "0.50",
+        "numberOfVictories": 7,
+        "numberOfDefeats": 7,
+        "moneyOfVictories": 40,
+        "moneyOfDefeats": -17,
+        "moneyOfTotal": 23,
+        "mahjongRecord": [6, -2, 7, -2, 7, -6, -2, -2, 4, -2, 4, 4, 8, -1],
+        "thisMoney": "-",
+        "highestVictoryStreak": 0,
+        "highestDefeatStreak": 0
+      }
+    ]
+  }
+]
+
+{
+  id: 0,
+  name: " IKUN",
+  winningProbability: 0,
+  numberOfVictories: 0,
+  numberOfDefeats: 0,
+  moneyOfVictories: 0,
+  moneyOfDefeats: 0,
+  moneyOfTotal: 0,
+  mahjongRecord: [],
+  thisMoney: "-",
+},
+{
+  id: 1,
+  name: "明黑",
+  winningProbability: 0,
+  numberOfVictories: 0,
+  numberOfDefeats: 0,
+  moneyOfVictories: 0,
+  moneyOfDefeats: 0,
+  moneyOfTotal: 0,
+  mahjongRecord: [],
+  thisMoney: "-",
+},
+{
+  id: 2,
+  name: "龙黑",
+  winningProbability: 0,
+  numberOfVictories: 0,
+  numberOfDefeats: 0,
+  moneyOfVictories: 0,
+  moneyOfDefeats: 0,
+  moneyOfTotal: 0,
+  mahjongRecord: [],
+  thisMoney: "-",
+},
