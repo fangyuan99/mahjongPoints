@@ -10,7 +10,7 @@ const url_list = [
   "https://flask-web-fraework-pm-htdtuvjbah.cn-hangzhou.fcapp.run/api/mj",
   "http://47.113.228.237:9528/api/mj",
 ];
-const url = url_list[0];
+const url = url_list[2];
 let mahjongData = reactive({
   data: [
     {
