@@ -16,22 +16,9 @@ const url_list = [
   "http://47.113.228.237:9528/api/mj",
 ];
 
-const url = url_list[2];
+const url = url_list[0];
 let mahjongData = reactive({
-  data: [
-    {
-      id: 0,
-      name: " ",
-      winningProbability: 0,
-      numberOfVictories: 0,
-      numberOfDefeats: 0,
-      moneyOfVictories: 0,
-      moneyOfDefeats: 0,
-      moneyOfTotal: 0,
-      mahjongRecord: [],
-      thisMoney: "",
-    },
-  ],
+  data: [],
   activeName: "",
   isLoading: false,
 });
@@ -44,6 +31,23 @@ let latelyData = reactive({
 });
 
 const roomNumber = useStorage("roomNumber", "000000");
+//获取房间号列表
+const getRoomNumberList = async () => {
+  let data = {
+    type: "getRoomNumberList",
+  };
+  try {
+    let res = await axios.post(url, data);
+    roomNumberList = eval(res.data["roomNumberList"]);
+  } catch (e) {
+    ElMessage({
+      message: "获取房间号列表失败，请检查网络连接" + e,
+      type: "error",
+    });
+  }
+};
+let roomNumberList = reactive([]);
+
 let currentRoomNumber = roomNumber.value;
 
 const getDateByIndex = (index) => {
@@ -69,12 +73,14 @@ const uploadData = async () => {
     type: "upload",
     roomNumber: roomNumber.value,
   };
-  let res = await axios.post(url, data);
-  // if (res.data.code === 200) {
-  //   ElMessage.success("上传成功");
-  // } else {
-  //   ElMessage.error("上传失败");
-  // }
+  try {
+    let res = await axios.post(url, data);
+  } catch (e) {
+    ElMessage({
+      message: "上传数据失败，请检查网络连接" + e,
+      type: "error",
+    });
+  }
 };
 
 const switchRooms = async (number) => {
@@ -84,33 +90,114 @@ const switchRooms = async (number) => {
     isNaN(Number(number)) ||
     (number + "").length !== 6
   ) {
-    ElMessage("房间号格式错误，请检查是否为6位数字");
+    ElMessage({
+      message: `房间号${number}格式错误，请检查是否为6位数字`,
+      type: "error",
+    });
     return;
   }
   roomNumber.value = number;
   if (currentRoomNumber === number) {
-    ElMessage("已经在该房间了，无需切换");
+    ElMessage({
+      message: "已经在该房间了，无需切换",
+      type: "success",
+    });
   } else {
-    // 关闭折叠面板
-    mahjongData.activeName = "";
-    //若房间未创建，需要重新下载一次
     let res = await downloadData();
-
-    if (res === "error") {
-      ElMessage({
-        message: `创建${number}房间成功`,
-        type: "success",
-      });
-      downloadData();
-    } else {
+    if (res !== "error") {    
       ElMessage({
         message: `切换${number}房间成功`,
         type: "success",
       });
+      if (mahjongData.data.length !== 0) {
+      mahjongData.activeName = "";
+    }else{
+      ElMessage({
+        message: `房间为空请先添加玩家`,
+        type: "warning",
+      });
     }
-    currentRoomNumber = number;
+      currentRoomNumber = number;
+    }
     // location.reload()
   }
+};
+
+const createRoom = async () => {
+  //获取用户输入的房间号，发送给后端
+  ElMessageBox.prompt("请输入房间号", "创建房间", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    inputPattern: /^[0-9]{6}$/,
+    inputErrorMessage: "房间号为6位数字",
+  }).then(async ({ value }) => {
+    let data = {
+      type: "createRoom",
+      roomNumber: value,
+    };
+    try {
+      let res = await axios.post(url, data);
+      if (res.data === "success") {
+        ElMessage({
+          message: `创建${value}房间成功`,
+          type: "success",
+        });
+        // 刷新房间号列表
+        getRoomNumberList();
+      } else {
+        ElMessage({
+          message: `创建${value}房间失败`,
+          type: "error",
+        });
+      }
+    } catch (e) {
+      ElMessage({
+        message: "创建房间失败，请检查网络连接" + e,
+        type: "error",
+      });
+    }
+  });
+};
+
+const deleteRoom = async () => {
+  //删除currentRoomNumber房间
+  ElMessageBox.confirm(
+    `此操作将永久删除${currentRoomNumber}, 是否继续?`,
+    "提示",
+    {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning",
+    }
+  ).then(async () => {
+    let data = {
+      type: "deleteRoom",
+      roomNumber: currentRoomNumber,
+    };
+    try {
+      let res = await axios.post(url, data);
+      if (res.data === "success") {
+        ElMessage({
+          message: `删除${currentRoomNumber}房间成功`,
+          type: "success",
+        });
+        // 刷新房间号列表
+        getRoomNumberList();
+        // 切换到默认房间
+        switchRooms("000000");
+      } else {
+        ElMessage({
+          message: `删除${currentRoomNumber}房间失败`,
+          type: "error",
+        });
+      }
+    } catch (e) {
+      ElMessage({
+        message: "删除房间失败，请检查网络连接" + e,
+        type: "error",
+      });
+    }
+  });
 };
 
 //下载云端数据
@@ -138,16 +225,34 @@ const downloadData = async () => {
     }
     return cloudData;
   } catch (e) {
-    console.log(e);
+    ElMessage({
+      message: "下载数据失败，请检查网络连接" + e,
+      type: "error",
+    });
     return "error";
   }
-  // if (res.data.code === 200) {
-  //   ElMessage.success("下载成功");
-  //   mahjongData.data = res.data.data.mahjongData;
-  //   latelyData.data = res.data.data.latelyData;
-  // } else {
-  //   ElMessage.error("下载失败");
-  // }
+};
+
+const filterMethod = () => {
+  roomNumberList = roomNumberList.filter((item) => {
+    //保留item为6位数字组成的字符串的项
+    return !isNaN(Number(item)) && (item + "").length === 6;
+  });
+};
+
+//更新数据
+const updateData = () => {
+  //只要thisMoney有值，就返回，否则downloadData
+  for (let i = 0; i < mahjongData.data.length; i++) {
+    if (mahjongData.data[i].thisMoney !== "") {
+      ElMessage({
+        message: "当前还有未结算的数据，请结算后再更新",
+        type: "warning",
+      });
+      return;
+    }
+  }
+  downloadData();
 };
 
 //清空云端数据
@@ -158,8 +263,6 @@ const clearCloudData = async () => {
   };
   let res = await axios.post(url, data);
   downloadData();
-  // roomNumber.value=res.data.roomNumber
-  // location.reload();
 };
 
 const showCol = (name) => {
@@ -171,58 +274,15 @@ const showCol = (name) => {
   }
 };
 
-//检测mahjongDat的变化，保存到localStorage
-// watch(mahjongData.data, (val) => {
-//   localStorage.setItem("mahjongData", JSON.stringify(val.data));
-//   uploadData();
-// });
-
-// watch(latelyData, (val) => {
-//   localStorage.setItem("latelyData", JSON.stringify(val.data));
-//   // 上传数据到云端
-//   uploadData();
-// });
-
 onMounted(() => {
-  // console.log("mounted");
-  // const loadingInstance1 = ElLoading.service({ fullscreen: true,
-  //   // lock: true,
-  //   text: '加载中',
-  //   // spinner: 'el-icon-loading',
-  //   background: 'rgba(0, 0, 0, 0.8)' })
   mahjongData.isLoading = true;
   downloadData();
-  // // 页面显示加载中
-  // // 若本地数据和云端数据不一致，则更新本地数据
-  // //
-  // if (cloudData.mahjongData != mahjongData.data) {
-  //   mahjongData.data = cloudData.mahjongData;
-  //   // console.log("mahjongData云端数据更新成功");
-  // }
-  // if (cloudData.latelyData != latelyData.data) {
-  //   latelyData.data = cloudData.latelyData;
-  //   // console.log("mahjongData云端数据更新成功");
-  // }
   mahjongData.isLoading = false;
-  // loadingInstance1.close()
+  getRoomNumberList();
 
   //给最新的版本号添加双击事件，双击后，清空localStorage
   let version = document.querySelector(".version");
   clickEvent(version, null, cleanCache);
-
-  // 从localStorage中获取mahjongData.data
-  // let mahjongDataFromLocalStorage = localStorage.getItem("mahjongData");
-  // if (mahjongDataFromLocalStorage) {
-  //   let tmp = JSON.parse(mahjongDataFromLocalStorage);
-  //   //清空mahjongData.data
-  //   mahjongData.data = tmp;
-  // }
-  // let latelyDataFromLocalStorage = localStorage.getItem("latelyData");
-  // if (latelyDataFromLocalStorage) {
-  //   let tmp = JSON.parse(latelyDataFromLocalStorage);
-  //   //清空mahjongData.data
-  //   latelyData.data = tmp;
-  // }
 });
 
 const visibility = useDocumentVisibility();
@@ -277,6 +337,14 @@ const dealNum = (e, type) => {
 };
 
 const addI = () => {
+  //若没有玩家，提示先添加玩家
+  if (mahjongData.data.length === 0) {
+    ElMessage({
+      message: "请先添加玩家",
+      type: "warning",
+    });
+    return;
+  }
   // console.log("addI");
   // 获取所有的输入框，遍历，若只有其他输入框都可以转为数字，则计算当前输入框的值，使得总和为0
   let allInput = document.querySelectorAll(".thisMoney input");
@@ -399,9 +467,6 @@ const deleteH = (data) => {
 };
 
 const showDetail = (index) => {
-  // console.log("showDetail");
-  // console.log(index);
-  // console.log(latelyData.data[index]);
   latelyData.detailData = latelyData.data[index].mahjongData;
   //添加一个属性，记录当前的index
   latelyData.detailData.index = index;
@@ -409,16 +474,6 @@ const showDetail = (index) => {
 };
 
 const showSummaryInformation = (item) => {
-  // console.log(item);
-  // return
-  // 汇总latelyData.data中的数据，找到和item.id相同的数据，将其数据汇总,输出
-  // if (latelyData.data.length === 0 || latelyData.data === undefined || Number(item.id) >= latelyData.data[0].mahjongData.length) {
-  //   ElMessage({
-  //     message: "暂无数据",
-  //     type: "warning",
-  //   });
-  //   return;
-  // }
   let sum = {
     id: item.id,
     name: item.name,
@@ -479,6 +534,13 @@ const showSummaryInformation = (item) => {
 };
 
 const clearI = () => {
+  if (mahjongData.data.length === 0) {
+    ElMessage({
+      message: "请先添加玩家",
+      type: "warning",
+    });
+    return;
+  }
   // console.log("clearI");
   if (mahjongData.data[0].mahjongRecord.length === 0) {
     ElMessage({
@@ -776,7 +838,13 @@ const deletePlayer = () => {
   })
     .then(({ value }) => {
       // console.log(value);
-      let index = mahjongData.data.findIndex((item) => item.name === value);
+      let index = -1;
+      for (let i = 0; i < mahjongData.data.length; i++) {
+        if (mahjongData.data[i].name === value) {
+          index = i;
+          break;
+        }
+      }
       if (index === -1) {
         ElMessageBox.alert("未找到该玩家", "提示", {
           confirmButtonText: "确定",
@@ -971,7 +1039,7 @@ const copyData = (str) => {
       <tr class="total">
         <td
           v-for="item in mahjongData.data"
-          @click="downloadData"
+          @click="updateData"
           :style="
             totalColor(item.moneyOfTotal) + ';font-size: 30px;font-weight: bold'
           "
@@ -1021,6 +1089,36 @@ const copyData = (str) => {
     >
       <el-collapse-item title="更多功能" name="2">
         <div class="moreF">
+          <div class="switchRoom">
+            <el-select
+              v-model="roomNumber"
+              placeholder="选择房间或者创建房间"
+              style="width: 32%"
+              type="number"
+              @change="switchRooms(roomNumber)"
+            >
+              <el-option
+                v-for="item in roomNumberList"
+                :key="item"
+                :label="item"
+                :value="item"
+              />
+            </el-select>
+            <el-button text type="primary" size="large" @click="createRoom()"
+              >创建房间</el-button
+            >
+            <el-button text type="danger" size="large" @click="deleteRoom()"
+              >删除房间</el-button
+            >
+
+            <div>
+              当前房间号<code
+                @click="copyData(currentRoomNumber)"
+                class="roomNumber"
+                >{{ currentRoomNumber }}</code
+              >，房间号为6位数字，<code class="roomNumber">默认为000000</code>
+            </div>
+          </div>
           <!-- 添加一个导出数据按钮 -->
           <el-button
             text
@@ -1048,34 +1146,6 @@ const copyData = (str) => {
             style="margin: 0 auto"
             >删除玩家</el-button
           >
-          <div class="switchRoom">
-            <el-input
-              v-model="roomNumber"
-              type="number"
-              style="max-width: 30%"
-            />
-            <el-button
-              text
-              type="primary"
-              size="large"
-              @click="switchRooms(roomNumber)"
-              >切换房间</el-button
-            >
-            <el-button
-              text
-              type="primary"
-              size="large"
-              @click="switchRooms('000000')"
-              >回到默认房间</el-button
-            >
-            <div>
-              当前房间号<code
-                @click="copyData(currentRoomNumber)"
-                class="roomNumber"
-                >{{ currentRoomNumber }}</code
-              >，房间号为6位数字，<code class="roomNumber">默认为000000</code>
-            </div>
-          </div>
         </div>
         <el-collapse-item title="最近记录" name="0">
           <div
@@ -1095,6 +1165,7 @@ const copyData = (str) => {
               >
                 <b>{{ getDateByTime(data.date) }}</b>
                 <el-button
+                  text
                   @click.stop="
                     copyData(
                       getDateByTime(data.date) +
