@@ -1071,7 +1071,7 @@ const copyData = (str) => {
       </tr>
 
       <div class="info"></div>
-      <div class="version">版本号：v3.1.0（2023年1月19日11:19:46）</div>
+      <div class="version">版本号：<v3 class="3 3"></v3>（2023年1月20日3:3:3）</div>
 
       <!-- <div class="version">版本号：v1.3.0（2022年12月22日13:05:49）</div> -->
 
