@@ -1,6 +1,11 @@
 <script setup>
 import { reactive, onMounted, watch } from "vue";
-import { useDark, useToggle, useDocumentVisibility } from "@vueuse/core";
+import {
+  useDark,
+  useToggle,
+  useDocumentVisibility,
+  useStorage,
+} from "@vueuse/core";
 import axios from "axios";
 import dayjs from "dayjs";
 const isDark = useDark();
@@ -10,6 +15,7 @@ const url_list = [
   "https://flask-web-fraework-pm-htdtuvjbah.cn-hangzhou.fcapp.run/api/mj",
   "http://47.113.228.237:9528/api/mj",
 ];
+
 const url = url_list[2];
 let mahjongData = reactive({
   data: [
@@ -37,10 +43,17 @@ let latelyData = reactive({
   detailData: {},
 });
 
+const roomNumber = useStorage("roomNumber", "000000");
+let currentRoomNumber = roomNumber.value;
+
 const getDateByIndex = (index) => {
   return dayjs(new Date(latelyData.data[index].date)).format(
     "YYYY-MM-DD HH:mm"
   );
+};
+
+const getDateByTime = (time) => {
+  return dayjs(new Date(time)).format("YYYY-MM-DD HH:mm");
 };
 
 let sumData = reactive({
@@ -54,6 +67,7 @@ const uploadData = async () => {
     mahjongData: mahjongData.data,
     latelyData: latelyData.data,
     type: "upload",
+    roomNumber: roomNumber.value,
   };
   let res = await axios.post(url, data);
   // if (res.data.code === 200) {
@@ -63,31 +77,70 @@ const uploadData = async () => {
   // }
 };
 
+const switchRooms = async (number) => {
+  if (
+    Number(number) < 0 ||
+    Number(number) > 999999 ||
+    isNaN(Number(number)) ||
+    (number + "").length !== 6
+  ) {
+    ElMessage("房间号格式错误，请检查是否为6位数字");
+    return;
+  }
+  roomNumber.value = number;
+  if (currentRoomNumber === number) {
+    ElMessage("已经在该房间了，无需切换");
+  } else {
+    // 关闭折叠面板
+    mahjongData.activeName = "";
+    //若房间未创建，需要重新下载一次
+    let res = await downloadData();
+
+    if (res === "error") {
+      ElMessage({
+        message: `创建${number}房间成功`,
+        type: "success",
+      });
+      downloadData();
+    } else {
+      ElMessage({
+        message: `切换${number}房间成功`,
+        type: "success",
+      });
+    }
+    currentRoomNumber = number;
+    // location.reload()
+  }
+};
+
 //下载云端数据
 const downloadData = async () => {
   let data = {
     type: "download",
+    roomNumber: roomNumber.value,
   };
-  try{
-  let res = await axios.post(url, data);
-  let cloudData = res.data;
-  // 页面显示加载中
-  // 若本地数据和云端数据不一致，则更新本地数据
-  if (
-    JSON.stringify(cloudData.mahjongData) != JSON.stringify(mahjongData.data)
-  ) {
-    mahjongData.data = cloudData.mahjongData;
-    // console.log("mahjongData云端数据更新成功");
+  try {
+    let res = await axios.post(url, data);
+    let cloudData = res.data;
+    // 页面显示加载中
+    // 若本地数据和云端数据不一致，则更新本地数据
+    if (
+      JSON.stringify(cloudData.mahjongData) != JSON.stringify(mahjongData.data)
+    ) {
+      mahjongData.data = cloudData.mahjongData;
+      // console.log("mahjongData云端数据更新成功");
+    }
+    if (
+      JSON.stringify(cloudData.latelyData) != JSON.stringify(latelyData.data)
+    ) {
+      latelyData.data = cloudData.latelyData;
+      // console.log("mahjongData云端数据更新成功");
+    }
+    return cloudData;
+  } catch (e) {
+    console.log(e);
+    return "error";
   }
-  if (JSON.stringify(cloudData.latelyData) != JSON.stringify(latelyData.data)) {
-    latelyData.data = cloudData.latelyData;
-    // console.log("mahjongData云端数据更新成功");
-  }
-  return cloudData;
-}catch(e){
-  console.log(e)
-  return {}
-}
   // if (res.data.code === 200) {
   //   ElMessage.success("下载成功");
   //   mahjongData.data = res.data.data.mahjongData;
@@ -101,9 +154,12 @@ const downloadData = async () => {
 const clearCloudData = async () => {
   let data = {
     type: "clear",
+    roomNumber: roomNumber.value,
   };
   let res = await axios.post(url, data);
-  location.reload();
+  downloadData();
+  // roomNumber.value=res.data.roomNumber
+  // location.reload();
 };
 
 const showCol = (name) => {
@@ -194,7 +250,7 @@ const dealNum = (e, type) => {
   document.querySelector(".operation").style.backgroundColor =
     "rgba(181, 178, 178, 0.19)";
 
-  let allInput = document.querySelectorAll(".el-input__inner");
+  let allInput = document.querySelectorAll(".thisMoney input");
   let allInputArr = Array.from(allInput);
   let numberOfNums = 0;
   allInput.forEach((item) => {
@@ -223,7 +279,7 @@ const dealNum = (e, type) => {
 const addI = () => {
   // console.log("addI");
   // 获取所有的输入框，遍历，若只有其他输入框都可以转为数字，则计算当前输入框的值，使得总和为0
-  let allInput = document.querySelectorAll(".el-input__inner");
+  let allInput = document.querySelectorAll(".thisMoney input");
   let allInputArr = Array.from(allInput);
   let flag = true;
   // 若有输入框为空，则不计算
@@ -237,6 +293,9 @@ const addI = () => {
       return false;
     }
   });
+  if (!flag) {
+    return;
+  }
 
   //若合计不为0，则不计算
   let sum = 0;
@@ -302,8 +361,8 @@ const deleteI = (index) => {
           (item.numberOfVictories + item.numberOfDefeats)
         ).toFixed(4);
         item.mahjongRecord.splice(index, 1);
-        uploadData();
       });
+      uploadData();
     })
     .catch(() => {
       // console.log("取消");
@@ -381,7 +440,10 @@ const showSummaryInformation = (item) => {
     if (item2.mahjongData[index] === undefined) {
       return;
     }
-    if (item2.mahjongData[index].id === item.id&&item2.mahjongData[index].name === item.name) {
+    if (
+      item2.mahjongData[index].id === item.id &&
+      item2.mahjongData[index].name === item.name
+    ) {
       sum.numberOfVictories += item2.mahjongData[index].numberOfVictories;
       sum.numberOfDefeats += item2.mahjongData[index].numberOfDefeats;
       sum.moneyOfVictories += item2.mahjongData[index].moneyOfVictories;
@@ -741,7 +803,7 @@ const deletePlayer = () => {
     });
 };
 
-const mahjongRecord2String = (item) => {
+const mahjongRecord2String = (item, isComplete) => {
   // console.log(item);
   item = JSON.parse(JSON.stringify(item));
   let str = "";
@@ -752,20 +814,23 @@ const mahjongRecord2String = (item) => {
     str += item[i].name.trim().toString().padEnd(8, " ");
   }
   str += "\n";
-  for (let i = 0; i < item[0].mahjongRecord.length; i++) {
-    for (let j = 0; j < item.length; j++) {
-      //item[j].mahjongRecord[i]转成8个字符，不够的用空格补齐
-      // 如果是正数，前面加个+号
-      let num = item[j].mahjongRecord[i];
-      if (num > 0) {
-        num = "+" + num;
-      } else if (num === 0) {
-        num = " 0";
+  if (isComplete) {
+    //添加本圈具体战绩
+    for (let i = 0; i < item[0].mahjongRecord.length; i++) {
+      for (let j = 0; j < item.length; j++) {
+        //item[j].mahjongRecord[i]转成8个字符，不够的用空格补齐
+        // 如果是正数，前面加个+号
+        let num = item[j].mahjongRecord[i];
+        if (num > 0) {
+          num = "+" + num;
+        } else if (num === 0) {
+          num = " 0";
+        }
+        str += num.toString().padEnd(8, " ");
+        +" ";
       }
-      str += num.toString().padEnd(8, " ");
-      +" ";
+      str += "\n";
     }
-    str += "\n";
   }
   //添加合计
   str += "合计：".toString().padEnd(8, " ") + "\n";
@@ -848,6 +913,7 @@ const copyData = (str) => {
     <h2 style="text-align: center; margin: 0" @click.stop="toggleDark()">
       麻将麻将计分!!!
     </h2>
+
     <div
       class="table"
       v-loading="mahjongData.isLoading"
@@ -925,14 +991,14 @@ const copyData = (str) => {
             v-model="item.thisMoney"
             @focus="dealNum($event, 'focus')"
             @blur="dealNum($event, 'blur')"
-            class="player"
+            class="thisMoney"
             type="number"
           />
         </td>
       </tr>
 
       <div class="info"></div>
-      <div class="version">版本号：v2.5.0（2023年1月12日20:05:21）</div>
+      <div class="version">版本号：v3.1.0（2023年1月19日11:19:46）</div>
 
       <!-- <div class="version">版本号：v1.3.0（2022年12月22日13:05:49）</div> -->
 
@@ -956,7 +1022,6 @@ const copyData = (str) => {
       <el-collapse-item title="更多功能" name="2">
         <div class="moreF">
           <!-- 添加一个导出数据按钮 -->
-
           <el-button
             text
             type="primary"
@@ -983,6 +1048,34 @@ const copyData = (str) => {
             style="margin: 0 auto"
             >删除玩家</el-button
           >
+          <div class="switchRoom">
+            <el-input
+              v-model="roomNumber"
+              type="number"
+              style="max-width: 30%"
+            />
+            <el-button
+              text
+              type="primary"
+              size="large"
+              @click="switchRooms(roomNumber)"
+              >切换房间</el-button
+            >
+            <el-button
+              text
+              type="primary"
+              size="large"
+              @click="switchRooms('000000')"
+              >回到默认房间</el-button
+            >
+            <div>
+              当前房间号<code
+                @click="copyData(currentRoomNumber)"
+                class="roomNumber"
+                >{{ currentRoomNumber }}</code
+              >，房间号为6位数字，<code class="roomNumber">默认为000000</code>
+            </div>
+          </div>
         </div>
         <el-collapse-item title="最近记录" name="0">
           <div
@@ -992,9 +1085,30 @@ const copyData = (str) => {
             @click="showDetail(index)"
           >
             <div class="latelyRecord" v-if="index <= 2 || latelyData.showMore">
-              <b>{{
-                dayjs(new Date(data.date)).format("YYYY-MM-DD HH:mm:ss")
-              }}</b>
+              <div
+                class="title"
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <b>{{ getDateByTime(data.date) }}</b>
+                <el-button
+                  @click.stop="
+                    copyData(
+                      getDateByTime(data.date) +
+                        '\n' +
+                        mahjongRecord2String(
+                          latelyData.data[index].mahjongData,
+                          false
+                        )
+                    )
+                  "
+                  >复制不含战绩数据</el-button
+                >
+              </div>
+
               <div
                 class="card2"
                 v-for="item in data.mahjongData"
@@ -1020,9 +1134,8 @@ const copyData = (str) => {
               type="primary"
               @click="latelyData.showMore = !latelyData.showMore"
             >
-              {{ latelyData.showMore ? "收起" : "展开" }} 共{{
-                latelyData.data.length - 3
-              }}
+              {{ latelyData.showMore ? "收起" : "展开" }}
+              {{ latelyData.data.length - 3 }}
               条记录
             </el-button>
           </div>
@@ -1039,8 +1152,8 @@ const copyData = (str) => {
             6.点击玩家昵称，可以显示用户汇总数据<br />
             7.点击主页合计数据，可以用云端同步数据<br />
             <b
-              >TODO:
-              用户创建房间，房间内多人同时使用（目前是所有人共用一个房间）</b
+              >3.0.0 版本已经实现
+              用户创建房间，房间内多人同时使用√（目前是所有人共用一个房间×）</b
             ><br />
             <div v-if="isWx()">
               微信端可以用浮窗模式，<b>点击右上角三个点，选择浮窗</b>，下次可以直接在主页左滑打开
@@ -1067,11 +1180,11 @@ const copyData = (str) => {
           copyData(
             getDateByIndex(latelyData.detailData.index) +
               '\n' +
-              mahjongRecord2String(latelyData.detailData)
+              mahjongRecord2String(latelyData.detailData, true)
           )
         "
         style="margin: 0 auto"
-        >复制数据</el-button
+        >复制完整数据</el-button
       >
       <el-button
         text
@@ -1178,9 +1291,17 @@ const copyData = (str) => {
         text
         type="success"
         size="default"
-        @click="copyData(mahjongRecord2String(sumData.detailData))"
+        @click="copyData(mahjongRecord2String(sumData.detailData, false))"
         style="margin: 0 auto"
-        >复制数据</el-button
+        >复制不含战绩数据</el-button
+      >
+      <el-button
+        text
+        type="success"
+        size="default"
+        @click="copyData(mahjongRecord2String(sumData.detailData, true))"
+        style="margin: 0 auto"
+        >复制完整数据</el-button
       >
     </div>
 
@@ -1363,16 +1484,32 @@ th {
   /* 圆角 */
   border-radius: 10px;
   /* 内边距 */
-  padding: 10px;
+  padding: 5px;
   /* 外边距 */
-  margin: 10px;
+  margin: 5px;
   /* 字体大小 */
   font-size: 20px;
   /* 字体居中 */
   text-align: center;
+  /* 字体加粗 */
+  font-weight: bold;
   display: flex;
 }
 .el-dialog + .el-dialog--center {
   margin-top: 10px;
+}
+.roomNumber {
+  /* 代码块样式 */
+  background-color: #999;
+  /* 圆角 */
+  border-radius: 7px;
+  /* 内边距 */
+  padding: 5px;
+  /* 外边距 */
+  margin: 10px;
+  /* 字体居中 */
+  text-align: center;
+  /* 字体加粗 */
+  font-weight: bold;
 }
 </style>
