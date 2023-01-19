@@ -156,7 +156,9 @@ const createRoom = async () => {
         type: "error",
       });
     }
-  });
+  })    .catch(() => {
+
+});
 };
 
 const deleteRoom = async () => {
@@ -197,7 +199,10 @@ const deleteRoom = async () => {
         type: "error",
       });
     }
-  });
+  })
+    .catch(() => {
+
+    })
 };
 
 //下载云端数据
