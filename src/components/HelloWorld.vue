@@ -48,8 +48,6 @@ const getRoomNumberList = async () => {
 };
 let roomNumberList = reactive([]);
 
-let currentRoomNumber = roomNumber.value;
-
 const getDateByIndex = (index) => {
   return dayjs(new Date(latelyData.data[index].date)).format(
     "YYYY-MM-DD HH:mm"
@@ -96,28 +94,27 @@ const switchRooms = async (number) => {
     });
     return;
   }
-  roomNumber.value = number;
-  if (currentRoomNumber === number) {
+  if (roomNumber === number) {
     ElMessage({
       message: "已经在该房间了，无需切换",
       type: "success",
     });
   } else {
     let res = await downloadData();
-    if (res !== "error") {    
+    if (res !== "error") {
       ElMessage({
         message: `切换${number}房间成功`,
         type: "success",
       });
+      
       if (mahjongData.data.length !== 0) {
-      mahjongData.activeName = "";
-    }else{
-      ElMessage({
-        message: `房间为空请先添加玩家`,
-        type: "warning",
-      });
-    }
-      currentRoomNumber = number;
+        mahjongData.activeName = "";
+      } else {
+        ElMessage({
+          message: `房间为空请先添加玩家`,
+          type: "warning",
+        });
+      }
     }
     // location.reload()
   }
@@ -130,79 +127,77 @@ const createRoom = async () => {
     cancelButtonText: "取消",
     inputPattern: /^[0-9]{6}$/,
     inputErrorMessage: "房间号为6位数字",
-  }).then(async ({ value }) => {
-    let data = {
-      type: "createRoom",
-      roomNumber: value,
-    };
-    try {
-      let res = await axios.post(url, data);
-      if (res.data === "success") {
+  })
+    .then(async ({ value }) => {
+      let data = {
+        type: "createRoom",
+        roomNumber: value,
+      };
+      try {
+        let res = await axios.post(url, data);
+        if (res.data === "success") {
+          ElMessage({
+            message: `创建${value}房间成功`,
+            type: "success",
+          });
+          // 跳转到新建的房间
+          switchRooms(value);
+        } else {
+          ElMessage({
+            message: `创建${value}房间失败`,
+            type: "error",
+          });
+        }
+      } catch (e) {
         ElMessage({
-          message: `创建${value}房间成功`,
-          type: "success",
-        });
-        // 刷新房间号列表
-        getRoomNumberList();
-      } else {
-        ElMessage({
-          message: `创建${value}房间失败`,
+          message: "创建房间失败，请检查网络连接" + e,
           type: "error",
         });
       }
-    } catch (e) {
-      ElMessage({
-        message: "创建房间失败，请检查网络连接" + e,
-        type: "error",
-      });
-    }
-  })    .catch(() => {
-
-});
+    })
+    .catch(() => {});
 };
 
 const deleteRoom = async () => {
-  //删除currentRoomNumber房间
+  //删除roomNumber房间
   ElMessageBox.confirm(
-    `此操作将永久删除${currentRoomNumber}, 是否继续?`,
+    `此操作将永久删除${roomNumber.value}, 是否继续?`,
     "提示",
     {
       confirmButtonText: "确定",
       cancelButtonText: "取消",
       type: "warning",
     }
-  ).then(async () => {
-    let data = {
-      type: "deleteRoom",
-      roomNumber: currentRoomNumber,
-    };
-    try {
-      let res = await axios.post(url, data);
-      if (res.data === "success") {
+  )
+    .then(async () => {
+      let data = {
+        type: "deleteRoom",
+        roomNumber: roomNumber.value,
+      };
+      try {
+        let res = await axios.post(url, data);
+        if (res.data === "success") {
+          ElMessage({
+            message: `删除${roomNumber.value}房间成功`,
+            type: "success",
+          });
+          // 切换到默认房间
+          roomNumber.value = "000000";
+          switchRooms("000000");
+        } else {
+          ElMessage({
+            message: `删除${roomNumber.value}房间失败`,
+            type: "error",
+          });
+        }
+      } catch (e) {
         ElMessage({
-          message: `删除${currentRoomNumber}房间成功`,
-          type: "success",
-        });
-        // 刷新房间号列表
-        getRoomNumberList();
-        // 切换到默认房间
-        switchRooms("000000");
-      } else {
-        ElMessage({
-          message: `删除${currentRoomNumber}房间失败`,
+          message: "删除房间失败，请检查网络连接" + e,
           type: "error",
         });
       }
-    } catch (e) {
-      ElMessage({
-        message: "删除房间失败，请检查网络连接" + e,
-        type: "error",
-      });
-    }
-  })
-    .catch(() => {
-
     })
+    .catch(() => {});
 };
 
 //下载云端数据
@@ -1101,6 +1096,7 @@ const copyData = (str) => {
               style="width: 32%"
               type="number"
               @change="switchRooms(roomNumber)"
+              @focus="getRoomNumberList"
             >
               <el-option
                 v-for="item in roomNumberList"
@@ -1118,9 +1114,9 @@ const copyData = (str) => {
 
             <div>
               当前房间号<code
-                @click="copyData(currentRoomNumber)"
+                @click="copyData(roomNumber)"
                 class="roomNumber"
-                >{{ currentRoomNumber }}</code
+                >{{ roomNumber }}</code
               >，房间号为6位数字，<code class="roomNumber">默认为000000</code>
             </div>
           </div>
