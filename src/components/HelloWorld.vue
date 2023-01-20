@@ -10,13 +10,8 @@ import axios from "axios";
 import dayjs from "dayjs";
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
-const url_list = [
-  "http://192.168.31.144:9528/api/mj",
-  "https://flask-web-fraework-pm-htdtuvjbah.cn-hangzhou.fcapp.run/api/mj",
-  "http://47.113.228.237:9528/api/mj",
-];
 
-const url = url_list[0];
+const url = import.meta.env.VITE_BASE_URL;
 let mahjongData = reactive({
   data: [],
   activeName: "",
