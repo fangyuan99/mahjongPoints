@@ -95,13 +95,15 @@ const switchRooms = async (number) => {
       type: "success",
     });
   } else {
+    roomNumber.value = number;
     let res = await downloadData();
     if (res !== "error") {
       ElMessage({
         message: `切换${number}房间成功`,
         type: "success",
       });
-      
+      getRoomNumberList();
+
       if (mahjongData.data.length !== 0) {
         mahjongData.activeName = "";
       } else {
@@ -178,7 +180,7 @@ const deleteRoom = async () => {
           });
           // 切换到默认房间
           roomNumber.value = "000000";
-          switchRooms("000000");
+          switchRooms(roomNumber.value);
         } else {
           ElMessage({
             message: `删除${roomNumber.value}房间失败`,
@@ -1112,7 +1114,7 @@ const copyData = (str) => {
                 @click="copyData(roomNumber)"
                 class="roomNumber"
                 >{{ roomNumber }}</code
-              >，房间号为6位数字，<code class="roomNumber">默认为000000</code>
+              >，房间号为6位数字
             </div>
           </div>
           <!-- 添加一个导出数据按钮 -->
