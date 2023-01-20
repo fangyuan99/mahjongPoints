@@ -782,36 +782,51 @@ const addPlayer = () => {
     return;
   }
   // console.log("添加玩家");
-  ElMessageBox.prompt("请输入玩家名称", "添加提示", {
+  ElMessageBox.prompt("请输入玩家名称,支持批量输入,用逗号隔开", "添加提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    inputPattern: /^[\u4e00-\u9fa5_a-zA-Z0-9]+$/,
+    inputPattern: /^[\u4e00-\u9fa5_a-zA-Z0-9,，]+$/,
     inputErrorMessage: "玩家名称只能包含中文、英文、数字和下划线",
   })
     .then(({ value }) => {
-      // console.log(value);
-      // 名称不能重复
-      if (mahjongData.data.some((item) => item.name === value)) {
-        ElMessageBox.alert("玩家名称不能重复", "提示", {
-          confirmButtonText: "确定",
-        });
-        return;
+      // 把value中的，替换为英文逗号
+      value = value.replace(/，/g, ",");
+
+      // 根据逗号分割字符串为数组
+      let value_list = value.split(",");
+      //若数组里有重复的元素，则去重
+      value_list = [...new Set(value_list)];
+      for (value of value_list) {
+        // 名称不能为空
+        if (!value) {
+          ElMessageBox.alert("玩家名称不能为空", "提示", {
+            confirmButtonText: "确定",
+          });
+          continue;
+        }
+        // 名称不能重复
+        if (mahjongData.data.some((item) => item.name === value)) {
+          ElMessageBox.alert("玩家名称不能重复", "提示", {
+            confirmButtonText: "确定",
+          });
+          continue;
+        }
+        let player = {
+          id: mahjongData.data.length,
+          name: value,
+          winningProbability: 0,
+          numberOfVictories: 0,
+          numberOfDefeats: 0,
+          moneyOfVictories: 0,
+          moneyOfDefeats: 0,
+          moneyOfTotal: 0,
+          mahjongRecord: [],
+          thisMoney: "",
+        };
+        mahjongData.data.push(player);
+        uploadData();
+        // console.log(latelyData.data);
       }
-      let player = {
-        id: mahjongData.data.length,
-        name: value,
-        winningProbability: 0,
-        numberOfVictories: 0,
-        numberOfDefeats: 0,
-        moneyOfVictories: 0,
-        moneyOfDefeats: 0,
-        moneyOfTotal: 0,
-        mahjongRecord: [],
-        thisMoney: "",
-      };
-      mahjongData.data.push(player);
-      uploadData();
-      // console.log(latelyData.data);
     })
     .catch(() => {
       // console.log("取消");
@@ -827,41 +842,50 @@ const deletePlayer = () => {
     return;
   }
   // console.log("删除玩家");
-  ElMessageBox.prompt("请输入玩家名称", "删除提示", {
+  ElMessageBox.prompt("请输入玩家名称,支持批量输入,用逗号隔开", "删除提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
-    inputPattern: /^[\u4e00-\u9fa5_a-zA-Z0-9]+$/,
+    inputPattern: /^[\u4e00-\u9fa5_a-zA-Z0-9，,]+$/,
     inputErrorMessage: "玩家名称只能包含中文、英文、数字和下划线",
   })
     .then(({ value }) => {
-      // console.log(value);
-      let index = -1;
-      for (let i = 0; i < mahjongData.data.length; i++) {
-        if (mahjongData.data[i].name === value) {
-          index = i;
-          break;
-        }
-      }
-      if (index === -1) {
-        ElMessageBox.alert("未找到该玩家", "提示", {
+      // 把value中的，替换为英文逗号
+      value = value.replace(/，/g, ",");
+
+      // 根据逗号分割字符串为数组
+      let value_list = value.split(",");
+      //若数组里有重复的元素，则去重
+      value_list = [...new Set(value_list)];
+      for (let j=0;j<value_list.length;j++) {
+        // 确定删除该玩家吗
+        ElMessageBox.confirm(`确定删除${value_list[j]}吗？`, "提示", {
           confirmButtonText: "确定",
-        });
-        return;
-      }
-      // 确定删除该玩家吗
-      ElMessageBox.confirm("确定删除该玩家吗？", "提示", {
-        confirmButtonText: "确定",
-        cancelButtonText: "取消",
-        type: "warning",
-      })
-        .then(() => {
-          // console.log("确定");
-          mahjongData.data.splice(index, 1);
-          uploadData();
+          cancelButtonText: "取消",
+          type: "warning",
         })
-        .catch(() => {
-          // console.log("取消");
-        });
+          .then(() => {
+            // console.log("确定");
+            // console.log(value_list[j]);
+            let index = -1;
+            for (let i = 0; i < mahjongData.data.length; i++) {
+              if (mahjongData.data[i].name === value_list[j]) {
+                index = i;
+                break;
+              }
+            }
+            if (index === -1) {
+              ElMessageBox.alert("未找到该玩家", "提示", {
+                confirmButtonText: "确定",
+              });
+              return;
+            }
+            mahjongData.data.splice(index, 1);
+            uploadData();
+          })
+          .catch(() => {
+            // console.log("取消");
+          });
+      }
     })
     .catch(() => {
       // console.log("取消");
