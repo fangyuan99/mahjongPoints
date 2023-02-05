@@ -6,7 +6,8 @@
   "scripts": {
     "d": "vite --host",
     "b": "vite build",
-    "p": "vite preview"
+    "p": "vite preview",
+    "r":"vite build && release.bat"
   },
   "dependencies": {
     "@vueuse/core": "^9.11.0",
