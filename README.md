@@ -1,7 +1,30 @@
-# Vue 3 + Vite
+# 麻将麻将计分
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## 使用说明
 
-## Recommended IDE Setup
+1. 输入金额后，点击添加，即可添加一条记录（**输入到最后一个数据时，点击输入框即可自动计算**）            
+2. 点击记录，即可**删除该条记录**
+3. 点击结余清空，即可保存本圈记录，并重新开始新一圈的记录
+4. 点击标题，即可切换暗黑/日间模式
+5. 双击版本号可以清除缓存，并刷新页面
+6. 点击玩家昵称，可以显示用户汇总数据
+7. 点击主页合计数据，可以用云端同步数据
+   3.0.0 版本已经实现:用户创建房间，房间内多人同时使用√（~~目前是所有人共用一个房间~~×）
+8. 微信端可以用浮窗模式，<b>点击右上角三个点，选择浮窗</b>，下次可以直接在主页左滑打开
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+## 前端
+
+- vue3+js+vite
+
+## 后端
+
+- python+flask
+
+## 从源码编译
+
+```bash
+yarn 
+
+yarn d
+```
+

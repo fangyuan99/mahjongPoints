@@ -7,7 +7,7 @@
     "d": "vite --host",
     "b": "vite build",
     "p": "vite preview",
-    "r":"python release.py"
+    "r": "python release.py"
   },
   "dependencies": {
     "@vueuse/core": "^9.11.0",

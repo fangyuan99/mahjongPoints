@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, onMounted, watch } from "vue";
+import { reactive, onMounted, watch, computed } from "vue";
 import {
   useDark,
   useToggle,
@@ -24,6 +24,27 @@ let latelyData = reactive({
   showMore: false,
   showDetail: false,
   detailData: {},
+});
+
+//定义一个计算属性tableData，用于显示table
+let tableData = computed(() => {
+  let data = [];
+  let temp = {};
+  let tempData = mahjongData.data;
+  for (let i = 0; i < tempData.length; i++) {
+    temp = {};
+    temp.name = tempData[i].name;
+    data.push(temp);
+  }
+
+  for (let i = 0; i < data.length; i++) {
+    //把每个玩家的数据全部放到data[i]中
+    for (let k = 0; k < tempData[i].mahjongRecord.length; k++) {
+      console.log(i,k);
+      data[i][k] = tempData[i].mahjongRecord[k];
+    }
+  }
+  return data;
 });
 
 const roomNumber = useStorage("roomNumber", "000000");
@@ -1043,7 +1064,36 @@ const copyData = (str) => {
     <h2 style="text-align: center; margin: 0" @click.stop="toggleDark()">
       麻将麻将计分!!!
     </h2>
-
+    <!-- <div>{{ mahjongData.data }}</div> -->
+    <el-table :data="mahjongData.data" style="width: 100%" :show-header="true">
+      <!-- <el-table-column prop="name" label="Name" width="180" /> -->
+      <el-table-column
+        prop="name"
+        label="姓名"
+      />
+      <el-table-column
+        label="胜率"
+      >
+        <template #default="scope">
+            <span >{{ getWinningProbability(scope.row) }}<br />{{
+                    getWinningText(scope.row)}}{{ getContestStreak(scope.row) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="战绩"
+      >
+          <template #default="scope">
+            <span v-for="item in scope.row.mahjongRecord">
+                {{ (item>0? "+"+item : item)+' || ' }}
+            </span>
+            <!-- {{ scope.row.mahjongRecord }} -->
+          </template>
+          </el-table-column>
+        <!-- <div style="display: flex; align-items: center">
+          <el-icon><timer /></el-icon>
+          <span style="margin-left: 10px">{{ scope.row.mahjongRecord }}</span>
+        </div> -->
+    </el-table>
     <div
       class="table"
       v-loading="mahjongData.isLoading"
