@@ -29,23 +29,50 @@ let latelyData = reactive({
 //定义一个计算属性tableData，用于显示table
 let tableData = computed(() => {
   let data = [];
+  // 遍历mahjongData.data，把每个玩家的战绩数据放入data中
+  let numberOfPlayers = mahjongData.data.length;
+  if (numberOfPlayers === 0) return [];
+  let numberOfGames = mahjongData.data[0].mahjongRecord.length;
+  // 添加每个玩家的胜率
   let temp = {};
-  let tempData = mahjongData.data;
-  for (let i = 0; i < tempData.length; i++) {
-    temp = {};
-    temp.name = tempData[i].name;
-    data.push(temp);
+  for (let i = 0; i < numberOfPlayers; i++) {
+    let item = mahjongData.data[i];
+    temp[i] =
+      "胜率\n" + (getWinningProbability(item) + " " + getWinningText(item));
   }
+  data.push(temp);
+  // 添加几跪中或者几胜中
+  temp = {};
+  for (let i = 0; i < numberOfPlayers; i++) {
+    let item = mahjongData.data[i];
+    temp[i] = getContestStreak(item);
+  }
+  data.push(temp);
 
-  for (let i = 0; i < data.length; i++) {
-    //把每个玩家的数据全部放到data[i]中
-    for (let k = 0; k < tempData[i].mahjongRecord.length; k++) {
-      console.log(i,k);
-      data[i][k] = tempData[i].mahjongRecord[k];
+  for (let i = 0; i < numberOfGames; i++) {
+    let temp = {};
+    for (let j = 0; j < numberOfPlayers; j++) {
+      temp[j] = mahjongData.data[j].mahjongRecord[i];
     }
+    data.push(temp);
   }
   return data;
 });
+
+let tableHeaders = computed(() => {
+  let data = [];
+  for (let i = 0; i < mahjongData.data.length; i++) {
+    let item = mahjongData.data[i];
+    data.push(item.name);
+  }
+  console.log("tableHeaders", data);
+  return data;
+});
+
+const tableRowClassName = ({ row, rowIndex }) => {
+  //把每一行的索引放进row
+  row.index = rowIndex;
+};
 
 const roomNumber = useStorage("roomNumber", "000000");
 //获取房间名列表
@@ -457,6 +484,12 @@ const addI = () => {
 
 const deleteI = (index) => {
   // console.log("deleteI");
+  if (isNaN(index)) {
+    index = index["index"] - 2;
+    if (index < 0) {
+      return;
+    }
+  }
   ElMessageBox.confirm("此操作将永久删除该记录, 是否继续?", "提示", {
     confirmButtonText: "确定",
     cancelButtonText: "取消",
@@ -524,6 +557,16 @@ const showDetail = (index) => {
 };
 
 const showSummaryInformation = (item) => {
+  //若item.label不为undefined，则说明要从mahjongData.data中找到对应的数据
+  if (item.label !== undefined) {
+    let label = item.label;
+    console.log("label", label);
+    mahjongData.data.forEach((item2) => {
+      if (item2.name === label) {
+        item = item2;
+      }
+    });
+  }
   let sum = {
     id: item.id,
     name: item.name,
@@ -737,7 +780,10 @@ const getHighestDefeatStreak = (item) => {
 };
 
 const totalColor = (num) => {
-  if (num < 0) {
+  if (num.toString().indexOf("胜率") != -1) {
+    return "color:black";
+  }
+  if (num.toString().indexOf("跪中") != -1 || num < 0) {
     return "color:red";
   }
   if (isDark.value) {
@@ -995,7 +1041,7 @@ const mahjongRecord2String = (item, isComplete) => {
     str +=
       (getWinningProbability(item[i]) + " " + getWinningText(item[i]))
         .toString()
-        .padEnd(8, " ") + " ";
+        .padEnd(8, " ") + "\n";
   }
 
   //添加最高连胜和最高连跪
@@ -1065,36 +1111,44 @@ const copyData = (str) => {
       麻将麻将计分!!!
     </h2>
     <!-- <div>{{ mahjongData.data }}</div> -->
-    <el-table :data="mahjongData.data" style="width: 100%" :show-header="true">
+    <el-table
+      :row-class-name="tableRowClassName"
+      :data="tableData"
+      style="width: 100%"
+      :show-header="true"
+      max-height="55vh"
+      border
+      stripe
+      @row-click="deleteI"
+      @header-click="showSummaryInformation"
+    >
       <!-- <el-table-column prop="name" label="Name" width="180" /> -->
       <el-table-column
-        prop="name"
-        label="姓名"
-      />
-      <el-table-column
-        label="胜率"
+        v-for="(item, index) in tableHeaders"
+        header-align="center"
+        :label="item"
       >
-        <template #default="scope">
-            <span >{{ getWinningProbability(scope.row) }}<br />{{
-                    getWinningText(scope.row)}}{{ getContestStreak(scope.row) }}</span>
+        <template #default="scope" @click="downloadData">
+          <div
+            :style="
+              totalColor(scope.row[index]) +
+              ';font-size:16px;text-align:center;'
+            "
+          >
+            <div v-if="scope.row[index].toString().indexOf('\n') !== -1">
+              {{ scope.row[index].toString().split("\n")[0] }}<br />
+              {{ scope.row[index].toString().split("\n")[1] }}
+            </div>
+            <div v-else>
+              {{
+                scope.row[index] > 0 ? "+" + scope.row[index] : scope.row[index]
+              }}
+            </div>
+          </div>
         </template>
       </el-table-column>
-      <el-table-column
-        label="战绩"
-      >
-          <template #default="scope">
-            <span v-for="item in scope.row.mahjongRecord">
-                {{ (item>0? "+"+item : item)+' || ' }}
-            </span>
-            <!-- {{ scope.row.mahjongRecord }} -->
-          </template>
-          </el-table-column>
-        <!-- <div style="display: flex; align-items: center">
-          <el-icon><timer /></el-icon>
-          <span style="margin-left: 10px">{{ scope.row.mahjongRecord }}</span>
-        </div> -->
     </el-table>
-    <div
+    <!-- <div
       class="table"
       v-loading="mahjongData.isLoading"
       element-loading-background="rgba(122, 122, 122, 0.8)"
@@ -1130,7 +1184,6 @@ const copyData = (str) => {
           </tr>
           <tr>
             <td v-for="item in mahjongData.data">
-              <!-- 循环输出item中的每一项 -->
               <div
                 type="primary"
                 size="default"
@@ -1146,7 +1199,7 @@ const copyData = (str) => {
           </tr>
         </tbody>
       </table>
-    </div>
+    </div> -->
     <div class="operation">
       <!-- 添加一个显示/隐藏总计的按钮 -->
       <div class="toggle">
